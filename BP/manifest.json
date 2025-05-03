@@ -5,14 +5,9 @@
 		"description": "-ah help",
 		"uuid": "3ed84690-d5c3-483d-a48e-5fc377f53018",
 		"version": [ 1, 0, 0 ],
-		"min_engine_version": [ 1, 20, 60 ]
+		"min_engine_version": [ 1, 21, 70 ]
 	},
 	"modules": [
-		{
-			"type": "data",
-			"uuid": "6b074f32-9805-4c2f-8a1a-deedfdcfcdc7",
-			"version": [ 0, 0, 1 ]
-		},
 		{
 			"type": "script",
 			"language": "javascript",
@@ -28,14 +23,12 @@
 	},
 	"dependencies": [
 		{
-			"description": "@minecraft/server module dependency",
 			"module_name": "@minecraft/server",
-			"version": "1.12.0-beta"
+			"version": "2.0.0-beta"
 		},
 		{
-			"description": "@minecraft/server-ui module dependency",
 			"module_name": "@minecraft/server-ui",
-			"version": "1.2.0-beta"
+			"version": "2.0.0-beta"
 		}
 	]
 }

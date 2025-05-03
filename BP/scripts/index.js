@@ -16,11 +16,24 @@ console.warn("[Auction house] §l§aReloaded!")
  * Project: https://github.com/WhiteeCattt/Auction-house
 */
 let entity;
-const db = new DynamicDB("AuctionHouse", world)
-const overworld = world.getDimension("overworld")
-overworld.runCommandAsync(`scoreboard objectives add ${config.money_object} dummy`)
-overworld.runCommandAsync(`tickingarea add circle 8 0 8 4 "AuctionHouseDatabase" true`)
-const air = new ItemStack("air")
+let db;
+let air;
+let overworld;
+system.run(() => {
+    db = new DynamicDB("AuctionHouse", world);
+
+    if (!db.get("AllAuctions")) {
+        db.set("AllAuctions", [])
+        db.set("ID", 0)
+        db.save()
+    }
+
+    overworld = world.getDimension("overworld")
+    overworld.runCommand(`scoreboard objectives add ${config.money_object} dummy`)
+    overworld.runCommand(`tickingarea add circle 8 0 8 4 "AuctionHouseDatabase" true`)
+
+    air = new ItemStack("air")
+});
 
 
 /**
@@ -29,7 +42,7 @@ const air = new ItemStack("air")
  * Project: https://github.com/WhiteeCattt/Auction-house
 */
 world.afterEvents.playerSpawn.subscribe(({ player, initialSpawn }) => {
-    if (!initialSpawn) return;
+    // if (!initialSpawn) return;
     if (!db.get(player.name)) {
         db.set(player.name, 0)
     }
@@ -49,12 +62,12 @@ world.afterEvents.playerSpawn.subscribe(({ player, initialSpawn }) => {
  * GitHub: https://github.com/WhiteeCattt/
  * Project: https://github.com/WhiteeCattt/Auction-house
 */
-system.runInterval(() => {
+system.runInterval(async () => {
     [entity] = overworld.getEntities().filter(entity => entity.typeId === "ah:database")
     for (const player of world.getAllPlayers()) {
-        player.runCommandAsync(`scoreboard players add @s ${config.money_object} ${db.get(player.name) ?? 0}`).then(() => {
-            db.set(player.name, 0)
-        })
+        await player.runCommand(`scoreboard players add @s ${config.money_object} ${db.get(player.name) ?? 0}`);
+
+        db.set(player.name, 0)
     }
 }, 10)
 
@@ -76,15 +89,17 @@ world.beforeEvents.chatSend.subscribe((data) => {
             if (db.get("AllAuctions").length >= config.max_auctions) return player.sendMessage(config.prefix + `The auction is full!`)
             const myItems = db.get("AllAuctions").filter(item => item.seller == player.name)
             if (myItems.length >= config.max_player_auctions) return player.sendMessage(config.prefix + `You have the maximum number of items in the auction!`);
-            const item = player.getComponent("inventory").container.getItem(player.selectedSlot)
+            const item = player.getComponent("inventory").container.getItem(player.selectedSlotIndex)
             if (!item) return player.sendMessage(config.prefix + "Take the item in your hand!");
             if (isNaN(args[2]) || args[2] < 1) return player.sendMessage(config.prefix + "Wrong price!");
             if (args[2] > config.max_price) return player.sendMessage(config.prefix + `It is forbidden to auction items more expensive than §a$${formatNumber(config.max_price)}§r!`);
             if (config.banned_items.includes(item.typeId)) return player.sendMessage(config.prefix + "This item is not allowed to be auctioned!");
             try {
                 player.sendMessage(config.prefix + `You have successfully placed an item §gx${item.amount}§r ${item.nameTag ?? `§g${item.typeId.replace("minecraft:", "").replaceAll("_", " ")}`}§r in an auction for §a$${formatNumber(args[2])}§r!`)
-                player.runCommandAsync(`replaceitem entity @s slot.hotbar ${player.selectedSlot} air`).then(() => {
+                system.run(async () => {
+                    await player.runCommand(`replaceitem entity @s slot.hotbar ${player.selectedSlotIndex} air`)
                     entity.getComponent("inventory").container.setItem(db.get("ID"), item)
+
                     db.get("AllAuctions").push({
                         seller: player.name,
                         price: Math.floor(args[2]),
